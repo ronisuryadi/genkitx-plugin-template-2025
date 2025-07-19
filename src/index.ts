@@ -8,6 +8,7 @@ const DbInputSchema = z.object({
   database: z.string(),
   password: z.string(),
   port: z.number(),
+  query: z.string(),
 });
 
 // Define the PostgreSQL flow
@@ -29,9 +30,7 @@ export const postgresFlow = (ai: any) =>
 
       try {
         await client.connect();
-        const res = await client.query(
-          "SELECT title, description, region from news_articles LIMIT 5;"
-        );
+        const res = await client.query(input.query);
         return res.rows;
       } finally {
         await client.end();
