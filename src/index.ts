@@ -1,39 +1,30 @@
-import { z } from "genkit";
-import { Client } from "pg";
+import { googleAI } from '@genkit-ai/googleai';
+import { defineFlow, runFlow } from '@genkit-ai/flow';
+import { genkit } from 'genkit';
+import * as z from 'zod';
 
-// Define input schema for the database flow
-const DbInputSchema = z.object({
-  user: z.string(),
-  host: z.string(),
-  database: z.string(),
-  password: z.string(),
-  port: z.number(),
-  query: z.string(),
+// Create the AI instance
+const ai = genkit({
+  plugins: [googleAI()],
+  model: googleAI.model('gemini-1.0-pro'), // Default model
 });
 
-// Define the PostgreSQL flow
-export const postgresFlow = (ai: any) =>
-  ai.defineFlow(
-    {
-      name: "postgresFlow",
-      inputSchema: DbInputSchema,
-      outputSchema: z.any(),
-    },
-    async (input: any) => {
-      const client = new Client({
-        user: input.user,
-        host: input.host,
-        database: input.database,
-        password: input.password,
-        port: input.port,
-      });
+export const eli5Flow = defineFlow(
+  {
+    name: 'eli5Flow',
+    inputSchema: z.string(),
+    outputSchema: z.string(),
+  },
+  async (prompt) => {
+    const llmResponse = await ai.generate({
+      model: googleAI.model('gemini-1.0-pro'),
+      prompt: `Jelaskan "${prompt}" seolah-olah saya berumur 5 tahun.`,
+    });
 
-      try {
-        await client.connect();
-        const res = await client.query(input.query);
-        return res.rows;
-      } finally {
-        await client.end();
-      }
-    }
-  );
+    return llmResponse.text;
+  }
+);
+
+export async function jelaskan(prompt: string) {
+  return await runFlow(eli5Flow, prompt);
+}
